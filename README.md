@@ -26,7 +26,7 @@ graph TD
         Cache["Triton & Inductor JIT Cache"]
     end
 
-    subgraph Memory ["128GB Unified Memory (LPDDR5x @ 273 GB/s)"]
+    subgraph Memory ["128GB Unified Memory (119 GiB / 121 GiB Utilized)"]
         Active["Active MoE Experts (6B / token)"]
         KV["131k Served Context KV Cache (FP8)"]
         Mamba["GDN Recurrence Buffers (96 slots)"]
@@ -68,9 +68,10 @@ Empirically measured telemetry comparing the 27B dense baseline against the 180B
 | **Served Context Window** | `262,144 tokens (262k)` *(1M YaRN)* | **`131,072 tokens (131k)`** *(262k native capacity)* |
 | **Measured Throughput** | `12.1 tok/s (base)` / `21.5 tok/s (MTP)` | **`110.4 – 152.8 tok/s (NEXTN MTP)`** |
 | **Time to First Token (TTFT)**| `~0.85 s (cold)` / `< 12 ms (cached)` | **`~0.25 s (cold)`** / **`< 12 ms (Radix hit)`** |
-| **Physical VRAM Allocation** | `29.4 GiB (FP8)` / `21.0 GiB (NVFP4)` | **`82.8 GiB / 121.7 GiB (38 GiB headroom)`** |
+| **Total System RAM Usage** | `~34 GiB / 121 GiB (free -h)` | **`119 GiB / 121 GiB (98% saturation)`** |
+| **SGLang VRAM Allocation** | `29.4 GiB (FP8)` / `21.0 GiB (NVFP4)` | **`109.8 GiB (109,769 MiB via nvidia-smi)`** |
 | **NVMe PLE Table Size** | `None` | **`47.7 GiB (51.2 GB)`** *(zero-copy mmap)* |
-| **Swap Memory Usage** | `0 Bytes` | **`0 Bytes (100% in physical memory)`** |
+| **Swap Buffer** | `0 Bytes` | **`2.3 GiB / 99 GiB (97 GiB free safety net)`** |
 | **Thinking Mode Support** | Standard CoT | **Native `<think>` Streaming + Tool Calling** |
 
 ---
