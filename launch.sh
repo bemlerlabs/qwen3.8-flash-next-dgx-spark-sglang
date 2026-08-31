@@ -1,14 +1,13 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# Qwen3.8-Flash-Next (180B MoE) SGLang Launch Script for NVIDIA DGX Spark
+# Qwen3.8-Flash-Next Hybrid-Sharp (180B MoE) SGLang Launch Script for DGX Spark
 # Recipe by Bemler Labs (https://github.com/bemlerlabs)
 # Hardware: Grace Blackwell GB10 (128GB Unified Memory, SM121)
 # ==============================================================================
 set -euo pipefail
 
-# Configuration paths (Default to standard DGX filesystem hierarchy)
-MODEL_ID="${MODEL_ID:-RadixArk/Qwen3.8-Flash-Next-NVFP4}"
-MODEL_REVISION="${MODEL_REVISION:-7b719225242aacd3dbd3f9407468c2ee9a9d2594}"
+MODEL_ID="${MODEL_ID:-travelinlance/Qwen3.8-Flash-Next-RadixArk-NVFP4-Hybrid-Sharp}"
+MODEL_REVISION="${MODEL_REVISION:-1f2ba8b30e34097058610938864b1991cfffa24b}"
 PLE_DIR="${PLE_DIR:-/root/flashnext-ple}"
 CACHE_DIR="${CACHE_DIR:-/root/.config/qwen38/sglang-cache}"
 CONFIG_DIR="${CONFIG_DIR:-/root/.config/qwen38}"
@@ -19,26 +18,23 @@ HOST="${HOST:-0.0.0.0}"
 PORT="${PORT:-8000}"
 
 echo "================================================================="
-echo " Starting Qwen3.8-Flash-Next on NVIDIA DGX Spark (SGLang Engine) "
+echo " Starting Qwen3.8-Flash-Next Hybrid-Sharp on DGX Spark (SGLang) "
 echo "================================================================="
 echo "Model ID:       ${MODEL_ID}"
 echo "Revision:       ${MODEL_REVISION}"
 echo "PLE Directory:  ${PLE_DIR}"
 echo "Cache Dir:      ${CACHE_DIR}"
-echo "Container:      ${CONTAINER_IMAGE}"
 echo "Listening on:   http://${HOST}:${PORT}"
 echo "================================================================="
 
 mkdir -p "${PLE_DIR}" "${CACHE_DIR}" "${CONFIG_DIR}"
 
-# Poisoned-table guard: If previous initialization was interrupted, clean stale table
 if [ -f "${PLE_DIR}/.loading" ]; then
   echo "Warning: Previous boot never reached health check; cleaning stale PLE tables..."
   rm -f "${PLE_DIR}"/ple_table_*.bin
 fi
 touch "${PLE_DIR}/.loading"
 
-# Detached background watcher to clear .loading flag once /health is responsive
 (
   for _ in $(seq 1 270); do
     sleep 10
@@ -50,7 +46,6 @@ touch "${PLE_DIR}/.loading"
   done
 ) </dev/null >/dev/null 2>&1 &
 
-# Execute Docker Container with SM121 specific flags
 exec /usr/bin/docker run --rm --name qwen38-flash --gpus all \
   --memory 110g --memory-swap 110g --shm-size 16g --network host --ipc=host \
   -v "${HF_CACHE_DIR}":/root/.cache/huggingface \
