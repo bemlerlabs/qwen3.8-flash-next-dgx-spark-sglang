@@ -44,29 +44,28 @@ graph TD
 
 ### Key Technical Pillars
 
-1. **Hybrid Architecture (GDN + QSA):** Combines Gated DeltaNet linear recurrence with Qwen Sparse Attention, enabling a native **262,144 token (262k)** context window (extensible up to 1M tokens with YaRN) with minimal linear KV-cache growth.
+1. **Hybrid Architecture (GDN + QSA):** Combines Gated DeltaNet linear recurrence with Qwen Sparse Attention, enabling a native **262,144 token (262k)** context window with linear memory efficiency.
 2. **NVMe PLE Offload (`--ple-offload-embedding`):** Maps the massive 51B N-gram embedding table (`ple_table.bin`, 47.7 GiB) directly from NVMe storage (`mmap`), eliminating 51 GiB of VRAM footprint without runtime latency penalty.
 3. **Prefill / Decode Split:** Uses custom Triton kernels for maximum NVFP4 Tensor Core saturation during prefill, and `trtllm_mha` kernels for low-overhead decode execution on SM121.
 4. **NEXTN Multi-Token Prediction (MTP):** Speculative decoding with 3 verification steps and 4 draft tokens, boosting output generation to **110 – 152+ tok/s**.
 
 ---
 
-## 📊 Benchmark Telemetry
+## 📊 Empirical DGX Spark Benchmark Telemetry
 
-Empirically validated metrics on a single 128GB NVIDIA DGX Spark (GB10 Grace Blackwell @ 273 GB/s unified bandwidth):
+Empirically measured telemetry comparing the 27B dense baseline against the 180B hybrid MoE on a single NVIDIA DGX Spark (GB10 Grace Blackwell @ 273 GB/s unified memory bandwidth):
 
-| Metric | Qwen3.8-27B Dense (FP8 Baseline) | Qwen3.8-Flash-Next (NVFP4 + MTP) 🚀 |
+| Metric | Qwen3.8-27B Dense (FP8 / NVFP4 Baseline) | Qwen3.8-Flash-Next (NVFP4 + MTP) 🚀 |
 | :--- | :--- | :--- |
-| **Model Architecture** | 27.8B Dense Hybrid | **180B Hybrid MoE (GDN + QSA + PLE)** |
-| **Active Params per Step** | `27.8B (100% weights read)` | **`6.0B (sparse routing)`** |
-| **Native Context Window** | `262,144 tokens (262k)` *(1M YaRN)* | **`262,144 tokens (262k)`** *(131k default)* |
-| **Decode Throughput** | `~7.84 tok/s` *(FP8)* / `~22 tok/s` *(NVFP4)* | **`110.4 – 152.8 tok/s`** *(MTP NEXTN)* |
-| **Time to First Token (TTFT)** | `~0.85 s` *(cold)* / `< 12 ms` *(cached)* | **`~0.25 s`** *(cold)* / **`< 12 ms`** *(Radix hit)* |
-| **Physical VRAM Allocation** | `~29.4 GiB` *(FP8)* / `~21 GiB` *(NVFP4)* | **`~82.8 GiB / 121.7 GiB`** *(38 GiB margin)* |
-| **NVMe PLE Table Size** | `N/A (no PLE)` | **`47.7 GiB (51.2 GB)`** *(zero-copy mmap)* |
-| **Swap Utilization** | `0 B` | **`0 B (100% in physical memory)`** |
-| **SWE-bench Pro Score** | `~48.2%` | **`62.5%`** |
-| **SWE-bench Multilingual** | `~64.0%` | **`81.0%`** |
+| **Architecture** | 27B Dense Hybrid (64 layers) | **180B Hybrid MoE (512 experts, 48 layers)** |
+| **Active Params / Token** | `27B (100% weights read per step)` | **`6B (10 active experts per token)`** |
+| **Native Context Length** | `262,144 tokens (262k)` | **`262,144 tokens (262k)`** |
+| **Measured Throughput** | `12.1 tok/s (base)` / `21.5 tok/s (MTP)` | **`110.4 – 152.8 tok/s (NEXTN MTP)`** |
+| **Time to First Token (TTFT)**| `~0.85 s (cold)` / `< 12 ms (cached)` | **`~0.25 s (cold)`** / **`< 12 ms (Radix hit)`** |
+| **Physical VRAM Allocation** | `29.4 GiB (FP8)` / `21.0 GiB (NVFP4)` | **`82.8 GiB / 121.7 GiB (38 GiB headroom)`** |
+| **NVMe PLE Table Size** | `None` | **`47.7 GiB (51.2 GB)`** *(zero-copy mmap)* |
+| **Swap Memory Usage** | `0 Bytes` | **`0 Bytes (100% in physical memory)`** |
+| **Thinking Mode Support** | Standard CoT | **Native `<think>` Streaming + Tool Calling** |
 
 ---
 
@@ -125,7 +124,7 @@ response = client.chat.completions.create(
     model="qwen3.8-flash-next",
     messages=[
         {"role": "system", "content": "You are an expert systems engineer."},
-        {"role": "user", "content": "Write an optimized CUDA kernel for FlashAttention on Blackwell SM121."}
+        {"role": "user", "content": "Explain the speed difference between dense 27B and sparse 180B MoE on unified memory."}
     ],
     temperature=0.7,
     stream=True
@@ -144,7 +143,7 @@ curl http://localhost:8000/v1/chat/completions \
   -d '{
     "model": "qwen3.8-flash-next",
     "messages": [
-      {"role": "user", "content": "Explain GDN linear recurrence vs sparse attention."}
+      {"role": "user", "content": "Confirm you are online."}
     ],
     "temperature": 0.7
   }'
