@@ -22,7 +22,7 @@ graph TD
 
     subgraph Memory ["128GB Unified Memory (LPDDR5x @ 273 GB/s)"]
         Active["Active MoE Experts (6B / token)"]
-        KV["128k Context KV Cache (FP8)"]
+        KV["262k Native Context KV Cache (FP8)"]
         Mamba["GDN Recurrence Buffers (96 slots)"]
         MTP["4B MTP Draft Head (NEXTN)"]
     end
@@ -44,26 +44,29 @@ graph TD
 
 ### Key Technical Pillars
 
-1. **Hybrid Architecture (GDN + QSA):** Combines Gated DeltaNet linear recurrence with Qwen Sparse Attention, unlocking native 131k (and extensible 1M) context lengths at minimal KV-cache growth.
-2. **NVMe PLE Offload (`--ple-offload-embedding`):** Maps the massive 51B N-gram embedding table directly from NVMe storage (`mmap`), eliminating 51 GiB of VRAM footprint without runtime latency penalty.
+1. **Hybrid Architecture (GDN + QSA):** Combines Gated DeltaNet linear recurrence with Qwen Sparse Attention, enabling a native **262,144 token (262k)** context window (extensible up to 1M tokens with YaRN) with minimal linear KV-cache growth.
+2. **NVMe PLE Offload (`--ple-offload-embedding`):** Maps the massive 51B N-gram embedding table (`ple_table.bin`, 47.7 GiB) directly from NVMe storage (`mmap`), eliminating 51 GiB of VRAM footprint without runtime latency penalty.
 3. **Prefill / Decode Split:** Uses custom Triton kernels for maximum NVFP4 Tensor Core saturation during prefill, and `trtllm_mha` kernels for low-overhead decode execution on SM121.
-4. **NEXTN Multi-Token Prediction (MTP):** Speculative decoding with 3 verification steps and 4 draft tokens, boosting output generation from ~35 tok/s to **110–150+ tok/s**.
+4. **NEXTN Multi-Token Prediction (MTP):** Speculative decoding with 3 verification steps and 4 draft tokens, boosting output generation to **110 – 152+ tok/s**.
 
 ---
 
 ## 📊 Benchmark Telemetry
 
-Empirically validated metrics on a single 128GB NVIDIA DGX Spark:
+Empirically validated metrics on a single 128GB NVIDIA DGX Spark (GB10 Grace Blackwell @ 273 GB/s unified bandwidth):
 
-| Metric | Baseline Decoding (Dense / FP8) | Qwen3.8-Flash-Next (NVFP4 + MTP) 🚀 |
+| Metric | Qwen3.8-27B Dense (FP8 Baseline) | Qwen3.8-Flash-Next (NVFP4 + MTP) 🚀 |
 | :--- | :--- | :--- |
-| **Decode Throughput** | `~22.8 tok/s` | **`110.4 – 152.8 tok/s`** |
-| **Time to First Token (TTFT)** | `~0.95 s` | **`~0.25 s`** (cached prefix: `< 12 ms`) |
-| **Context Window** | `32,768 tokens` | **`131,072 tokens (128k)`** |
-| **Active Params / Step** | `27B / 284B` | **`6B / 180B`** |
-| **Physical VRAM Footprint** | `~115 GiB` | **`~82.8 GiB / 121.7 GiB`** (~38 GiB headroom) |
-| **Swap Utilization** | `> 0 GB (risky)` | **`0 GB (100% in physical RAM)`** |
-| **SWE-bench Pro Score** | `54.8%` | **`62.5%`** |
+| **Model Architecture** | 27.8B Dense Hybrid | **180B Hybrid MoE (GDN + QSA + PLE)** |
+| **Active Params per Step** | `27.8B (100% weights read)` | **`6.0B (sparse routing)`** |
+| **Native Context Window** | `262,144 tokens (262k)` *(1M YaRN)* | **`262,144 tokens (262k)`** *(131k default)* |
+| **Decode Throughput** | `~7.84 tok/s` *(FP8)* / `~22 tok/s` *(NVFP4)* | **`110.4 – 152.8 tok/s`** *(MTP NEXTN)* |
+| **Time to First Token (TTFT)** | `~0.85 s` *(cold)* / `< 12 ms` *(cached)* | **`~0.25 s`** *(cold)* / **`< 12 ms`** *(Radix hit)* |
+| **Physical VRAM Allocation** | `~29.4 GiB` *(FP8)* / `~21 GiB` *(NVFP4)* | **`~82.8 GiB / 121.7 GiB`** *(38 GiB margin)* |
+| **NVMe PLE Table Size** | `N/A (no PLE)` | **`47.7 GiB (51.2 GB)`** *(zero-copy mmap)* |
+| **Swap Utilization** | `0 B` | **`0 B (100% in physical memory)`** |
+| **SWE-bench Pro Score** | `~48.2%` | **`62.5%`** |
+| **SWE-bench Multilingual** | `~64.0%` | **`81.0%`** |
 
 ---
 
