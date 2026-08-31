@@ -10,6 +10,12 @@ A production-grade, battle-tested recipe for serving **Qwen3.8-Flash-Next (180B 
 
 ---
 
+## 📺 Live Telemetry Demo (Animated Stream)
+
+![Qwen3.8-Flash-Next Live Streaming Telemetry](qwen38_live_demo.webp)
+
+---
+
 ## 🎯 Architecture Overview
 
 ```mermaid
@@ -134,39 +140,6 @@ for chunk in response:
     delta = chunk.choices[0].delta.content or ""
     print(delta, end="", flush=True)
 ```
-
-### cURL
-```bash
-curl http://localhost:8000/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer local" \
-  -d '{
-    "model": "qwen3.8-flash-next",
-    "messages": [
-      {"role": "user", "content": "Confirm you are online."}
-    ],
-    "temperature": 0.7
-  }'
-```
-
----
-
-## 🧪 Benchmark Harness
-
-Run automated throughput and latency benchmarks:
-
-```bash
-python3 benchmark.py --host 127.0.0.1 --port 8000 --concurrency 4 --num-requests 20
-```
-
----
-
-## 🔒 Security & Privacy Notice
-
-This recipe is completely air-gapped and local:
-- No telemetry or logs leave your machine.
-- No third-party API dependencies.
-- Zero credential leakage.
 
 ---
 
