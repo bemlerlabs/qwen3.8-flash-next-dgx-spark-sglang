@@ -22,7 +22,7 @@ graph TD
 
     subgraph Memory ["128GB Unified Memory (LPDDR5x @ 273 GB/s)"]
         Active["Active MoE Experts (6B / token)"]
-        KV["262k Native Context KV Cache (FP8)"]
+        KV["131k Served Context KV Cache (FP8)"]
         Mamba["GDN Recurrence Buffers (96 slots)"]
         MTP["4B MTP Draft Head (NEXTN)"]
     end
@@ -44,7 +44,7 @@ graph TD
 
 ### Key Technical Pillars
 
-1. **Hybrid Architecture (GDN + QSA):** Combines Gated DeltaNet linear recurrence with Qwen Sparse Attention, enabling a native **262,144 token (262k)** context window with linear memory efficiency.
+1. **Hybrid Architecture (GDN + QSA):** Combines Gated DeltaNet linear recurrence with Qwen Sparse Attention, serving **131,072 tokens (131k)** in production (architecturally capable of 262k native) with linear memory efficiency.
 2. **NVMe PLE Offload (`--ple-offload-embedding`):** Maps the massive 51B N-gram embedding table (`ple_table.bin`, 47.7 GiB) directly from NVMe storage (`mmap`), eliminating 51 GiB of VRAM footprint without runtime latency penalty.
 3. **Prefill / Decode Split:** Uses custom Triton kernels for maximum NVFP4 Tensor Core saturation during prefill, and `trtllm_mha` kernels for low-overhead decode execution on SM121.
 4. **NEXTN Multi-Token Prediction (MTP):** Speculative decoding with 3 verification steps and 4 draft tokens, boosting output generation to **110 – 152+ tok/s**.
@@ -59,7 +59,7 @@ Empirically measured telemetry comparing the 27B dense baseline against the 180B
 | :--- | :--- | :--- |
 | **Architecture** | 27B Dense Hybrid (64 layers) | **180B Hybrid MoE (512 experts, 48 layers)** |
 | **Active Params / Token** | `27B (100% weights read per step)` | **`6B (10 active experts per token)`** |
-| **Native Context Length** | `262,144 tokens (262k)` | **`262,144 tokens (262k)`** |
+| **Served Context Window** | `262,144 tokens (262k)` *(1M YaRN)* | **`131,072 tokens (131k)`** *(262k native capacity)* |
 | **Measured Throughput** | `12.1 tok/s (base)` / `21.5 tok/s (MTP)` | **`110.4 – 152.8 tok/s (NEXTN MTP)`** |
 | **Time to First Token (TTFT)**| `~0.85 s (cold)` / `< 12 ms (cached)` | **`~0.25 s (cold)`** / **`< 12 ms (Radix hit)`** |
 | **Physical VRAM Allocation** | `29.4 GiB (FP8)` / `21.0 GiB (NVFP4)` | **`82.8 GiB / 121.7 GiB (38 GiB headroom)`** |
