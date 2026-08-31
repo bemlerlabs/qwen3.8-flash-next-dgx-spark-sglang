@@ -1,0 +1,20 @@
+[Unit]
+Description=Qwen3.8-Flash-Next NVFP4 SGLang Engine (DGX Spark, PLE Table on NVMe, MTP Speculative)
+After=network-online.target docker.service
+Wants=network-online.target
+Requires=docker.service
+
+[Service]
+Type=simple
+User=root
+Group=root
+WorkingDirectory=/root
+ExecStartPre=-/usr/bin/docker rm -f qwen38-flash
+ExecStart=/bin/bash /root/.config/qwen38/launch-flash.sh
+ExecStop=-/usr/bin/docker stop -t 20 qwen38-flash
+Restart=always
+RestartSec=15
+LimitNOFILE=1048576
+
+[Install]
+WantedBy=multi-user.target

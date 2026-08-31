@@ -1,0 +1,91 @@
+#!/usr/bin/env bash
+# ==============================================================================
+# Qwen3.8-Flash-Next (180B MoE) SGLang Launch Script for NVIDIA DGX Spark
+# Recipe by Bemler Labs (https://github.com/bemlerlabs)
+# Hardware: Grace Blackwell GB10 (128GB Unified Memory, SM121)
+# ==============================================================================
+set -euo pipefail
+
+# Configuration paths (Default to standard DGX filesystem hierarchy)
+MODEL_ID="${MODEL_ID:-RadixArk/Qwen3.8-Flash-Next-NVFP4}"
+MODEL_REVISION="${MODEL_REVISION:-7b719225242aacd3dbd3f9407468c2ee9a9d2594}"
+PLE_DIR="${PLE_DIR:-/root/flashnext-ple}"
+CACHE_DIR="${CACHE_DIR:-/root/.config/qwen38/sglang-cache}"
+CONFIG_DIR="${CONFIG_DIR:-/root/.config/qwen38}"
+HF_CACHE_DIR="${HF_CACHE_DIR:-/home/mimitechai/.cache/huggingface}"
+CONTAINER_IMAGE="${CONTAINER_IMAGE:-qwen38-flash:v1.5}"
+API_KEY="${API_KEY:-local}"
+HOST="${HOST:-0.0.0.0}"
+PORT="${PORT:-8000}"
+
+echo "================================================================="
+echo " Starting Qwen3.8-Flash-Next on NVIDIA DGX Spark (SGLang Engine) "
+echo "================================================================="
+echo "Model ID:       ${MODEL_ID}"
+echo "Revision:       ${MODEL_REVISION}"
+echo "PLE Directory:  ${PLE_DIR}"
+echo "Cache Dir:      ${CACHE_DIR}"
+echo "Container:      ${CONTAINER_IMAGE}"
+echo "Listening on:   http://${HOST}:${PORT}"
+echo "================================================================="
+
+mkdir -p "${PLE_DIR}" "${CACHE_DIR}" "${CONFIG_DIR}"
+
+# Poisoned-table guard: If previous initialization was interrupted, clean stale table
+if [ -f "${PLE_DIR}/.loading" ]; then
+  echo "Warning: Previous boot never reached health check; cleaning stale PLE tables..."
+  rm -f "${PLE_DIR}"/ple_table_*.bin
+fi
+touch "${PLE_DIR}/.loading"
+
+# Detached background watcher to clear .loading flag once /health is responsive
+(
+  for _ in $(seq 1 270); do
+    sleep 10
+    if curl -s -m 3 "http://127.0.0.1:${PORT}/health" >/dev/null 2>&1; then
+      rm -f "${PLE_DIR}/.loading"
+      echo "Server is healthy and ready on port ${PORT}."
+      exit 0
+    fi
+  done
+) </dev/null >/dev/null 2>&1 &
+
+# Execute Docker Container with SM121 specific flags
+exec /usr/bin/docker run --rm --name qwen38-flash --gpus all \
+  --memory 110g --memory-swap 110g --shm-size 16g --network host --ipc=host \
+  -v "${HF_CACHE_DIR}":/root/.cache/huggingface \
+  -v "${CONFIG_DIR}":/out \
+  -v "${PLE_DIR}":/ple \
+  -v "${CACHE_DIR}":/root/.cache/sglang \
+  -e SGLANG_QWEN4_PLE_MMAP_DIR=/ple \
+  -e TRITON_CACHE_DIR=/root/.cache/sglang/triton \
+  -e TORCHINDUCTOR_CACHE_DIR=/root/.cache/sglang/inductor \
+  -e HF_HUB_OFFLINE=1 \
+  "${CONTAINER_IMAGE}" \
+  python3 -m sglang.launch_server \
+    --model-path "${MODEL_ID}" \
+    --revision "${MODEL_REVISION}" \
+    --tp-size 1 \
+    --served-model-name qwen3.8-flash-next \
+    --quantization modelopt_fp4 \
+    --prefill-attention-backend triton \
+    --decode-attention-backend trtllm_mha \
+    --ple-offload-embedding \
+    --mamba-radix-cache-strategy extra_buffer \
+    --max-mamba-cache-size 96 \
+    --mem-fraction-static 0.95 \
+    --context-length 131072 \
+    --chunked-prefill-size 4096 \
+    --max-running-requests 4 \
+    --allow-auto-truncate \
+    --speculative-algorithm NEXTN \
+    --speculative-num-steps 3 \
+    --speculative-eagle-topk 1 \
+    --speculative-num-draft-tokens 4 \
+    --speculative-draft-model-quantization unquant \
+    --reasoning-parser qwen3 \
+    --tool-call-parser qwen3_coder \
+    --chat-template /out/chat-template-flashnext.jinja \
+    --api-key "${API_KEY}" \
+    --host "${HOST}" \
+    --port "${PORT}"
