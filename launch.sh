@@ -76,6 +76,8 @@ exec /usr/bin/docker run --rm --name qwen38-flash --gpus all \
     --mem-fraction-static 0.95 \
     --context-length 131072 \
     --chunked-prefill-size 4096 \
+    --enable-mixed-chunk \
+    --schedule-conservativeness 0.8 \
     --max-running-requests 4 \
     --allow-auto-truncate \
     --speculative-algorithm NEXTN \
