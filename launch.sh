@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# Qwen3.8-Flash-Next Hybrid-Sharp (180B MoE) SGLang Launch Script for DGX Spark
+# Qwen3.8-Flash-Next (180B MoE) SGLang Launch Script for NVIDIA DGX Spark
 # Recipe by Bemler Labs (https://github.com/bemlerlabs)
 # Hardware: Grace Blackwell GB10 (128GB Unified Memory, SM121)
 # ==============================================================================
 set -euo pipefail
 
-MODEL_ID="${MODEL_ID:-travelinlance/Qwen3.8-Flash-Next-RadixArk-NVFP4-Hybrid-Sharp}"
-MODEL_REVISION="${MODEL_REVISION:-1f2ba8b30e34097058610938864b1991cfffa24b}"
+MODEL_ID="${MODEL_ID:-RadixArk/Qwen3.8-Flash-Next-NVFP4}"
+MODEL_REVISION="${MODEL_REVISION:-7b719225242aacd3dbd3f9407468c2ee9a9d2594}"
 PLE_DIR="${PLE_DIR:-/root/flashnext-ple}"
 CACHE_DIR="${CACHE_DIR:-/root/.config/qwen38/sglang-cache}"
 CONFIG_DIR="${CONFIG_DIR:-/root/.config/qwen38}"
@@ -18,7 +18,7 @@ HOST="${HOST:-0.0.0.0}"
 PORT="${PORT:-8000}"
 
 echo "================================================================="
-echo " Starting Qwen3.8-Flash-Next Hybrid-Sharp on DGX Spark (SGLang) "
+echo " Starting Qwen3.8-Flash-Next on DGX Spark (SGLang + Sharp Template) "
 echo "================================================================="
 echo "Model ID:       ${MODEL_ID}"
 echo "Revision:       ${MODEL_REVISION}"

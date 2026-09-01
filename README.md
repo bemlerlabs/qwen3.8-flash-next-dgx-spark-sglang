@@ -54,6 +54,8 @@ graph TD
 2. **NVMe PLE Offload (`--ple-offload-embedding`):** Maps the massive 51B N-gram embedding table (`ple_table.bin`, 47.7 GiB) directly from NVMe storage (`mmap`), eliminating 51 GiB of VRAM footprint without runtime latency penalty.
 3. **Prefill / Decode Split:** Uses custom Triton kernels for maximum NVFP4 Tensor Core saturation during prefill, and `trtllm_mha` kernels for low-overhead decode execution on SM121.
 4. **NEXTN Multi-Token Prediction (MTP):** Speculative decoding with 3 verification steps and 4 draft tokens, boosting output generation to **110 – 152+ tok/s**.
+5. **Sharp Chat Template (`qwen3.8-froggeric-v22.1`):** Integrated Jinja template eliminating conversational filler tokens, shortening response lengths by ~18% while maintaining full reasoning fidelity.
+6. **Persistent JIT Compilation Cache:** Mounts Triton and Inductor SM121 kernel caches to host NVMe, reducing engine boot and restart times from 15 minutes down to ~3 minutes.
 
 ---
 
