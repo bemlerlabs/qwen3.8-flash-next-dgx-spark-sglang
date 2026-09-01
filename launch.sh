@@ -46,8 +46,6 @@ if [ -d "${HF_SNAPSHOT_DIR}" ]; then
   find "${HF_SNAPSHOT_DIR}" -name "*.safetensors" | xargs -n 1 -P 8 cat > /dev/null 2>&1 || true
 fi
 
-if [ -d "${PLE_DIR}" ]; then
-fi
 
 # Background health monitor (disowned to prevent zombie subshell)
 (
