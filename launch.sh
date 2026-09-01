@@ -39,19 +39,11 @@ if [ ! -f "${CONFIG_DIR}/chat-template-flashnext.jinja" ]; then
   exit 1
 fi
 
-# Clean stale PLE loading lock
-if [ -f "${PLE_DIR}/.loading" ]; then
-  echo "Warning: Previous boot never reached health check; cleaning stale PLE tables..."
-  rm -f "${PLE_DIR}"/ple_table_*.bin
-fi
-touch "${PLE_DIR}/.loading"
-
 # Background health monitor (disowned to prevent zombie subshell)
 (
   for _ in $(seq 1 270); do
     sleep 10
     if curl -s -m 3 "http://127.0.0.1:${PORT}/health" >/dev/null 2>&1; then
-      rm -f "${PLE_DIR}/.loading"
       echo "Server is healthy and ready on port ${PORT}."
       exit 0
     fi
@@ -59,9 +51,9 @@ touch "${PLE_DIR}/.loading"
 ) </dev/null >/dev/null 2>&1 &
 disown || true
 
-# Launch production container with strict 110GB memory ceiling (Zero-OOM Guarantee)
+# Launch production container with 106GB memory ceiling and optimized 0.90 static fraction
 exec /usr/bin/docker run --rm --name qwen38-flash --gpus all \
-  --memory 110g --memory-swap 110g --shm-size 16g --network host --ipc=host \
+  --memory 106g --memory-swap 106g --shm-size 16g --network host --ipc=host \
   -v "${HF_CACHE_DIR}":/root/.cache/huggingface \
   -v "${CONFIG_DIR}":/out \
   -v "${PLE_DIR}":/ple \
@@ -80,8 +72,8 @@ exec /usr/bin/docker run --rm --name qwen38-flash --gpus all \
     --decode-attention-backend trtllm_mha \
     --ple-offload-embedding \
     --mamba-radix-cache-strategy extra_buffer \
-    --max-mamba-cache-size 96 \
-    --mem-fraction-static 0.95 \
+    --max-mamba-cache-size 48 \
+    --mem-fraction-static 0.90 \
     --context-length 131072 \
     --chunked-prefill-size 4096 \
     --enable-mixed-chunk \
