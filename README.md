@@ -6,13 +6,7 @@
 [![Speculative: NEXTN MTP](https://img.shields.io/badge/Speculative-NEXTN%20MTP%20(3%2F1%2F4)-orange)](https://github.com/sgl-project/sglang)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-lightgrey)](LICENSE)
 
-A production-grade, battle-tested recipe for serving **Qwen3.8-Flash-Next (180B Hybrid MoE / Qwen4 Preview)** on a single **128GB NVIDIA DGX Spark (Grace Blackwell GB10, SM121)** using NVFP4 quantization, zero-copy NVMe memory-mapped PLE offloading, and NEXTN Multi-Token Prediction (MTP).
-
----
-
-## 📺 Live Telemetry Demo (Animated Stream)
-
-![Qwen3.8-Flash-Next Live Streaming Telemetry](qwen38_live_demo.webp)
+A production-grade, battle-tested recipe architected by **Michael Bemler (Bemler Labs)** for serving **Qwen3.8-Flash-Next (180B Hybrid MoE / Qwen4 Preview)** on a single **128GB NVIDIA DGX Spark (Grace Blackwell GB10, SM121)** using ModelOpt NVFP4 quantization, zero-copy NVMe memory-mapped PLE offloading, and NEXTN Multi-Token Prediction (MTP).
 
 ---
 
