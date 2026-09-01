@@ -4,6 +4,7 @@
 [![Model: Qwen3.8-Flash-Next](https://img.shields.io/badge/Model-Qwen3.8--Flash--Next%20(180B%20MoE)-blue)](https://huggingface.co/RadixArk/Qwen3.8-Flash-Next-NVFP4)
 [![Engine: SGLang](https://img.shields.io/badge/Engine-SGLang%20(SM121%20Optimized)-brightgreen)](https://github.com/sgl-project/sglang)
 [![Speculative: NEXTN MTP](https://img.shields.io/badge/Speculative-NEXTN%20MTP%20(3%2F1%2F4)-orange)](https://github.com/sgl-project/sglang)
+[![Report: PDF Benchmark](https://img.shields.io/badge/Report-PDF_Benchmark-red?logo=adobeacrobatreader)](Qwen3.8_FlashNext_DGX_Spark_Benchmark_Report.pdf)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-lightgrey)](LICENSE)
 
 A production-grade, battle-tested recipe architected by **Michael Bemler (Bemler Labs)** for serving **Qwen3.8-Flash-Next (180B Hybrid MoE / Qwen4 Preview)** on a single **128GB NVIDIA DGX Spark (Grace Blackwell GB10, SM121)** using ModelOpt NVFP4 quantization, zero-copy NVMe memory-mapped PLE offloading, and NEXTN Multi-Token Prediction (MTP).
