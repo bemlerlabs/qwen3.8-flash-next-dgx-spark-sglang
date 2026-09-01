@@ -47,9 +47,6 @@ if [ -d "${HF_SNAPSHOT_DIR}" ]; then
 fi
 
 if [ -d "${PLE_DIR}" ]; then
-  echo "Pre-warming 47.7 GiB PLE table into OS page cache with 4 NVMe workers..."
-  find "${PLE_DIR}" -name "*.bin" | xargs -n 1 -P 4 cat > /dev/null 2>&1 || true
-  echo "Storage pre-warming complete (Safetensors + PLE table)."
 fi
 
 # Background health monitor (disowned to prevent zombie subshell)
@@ -88,7 +85,7 @@ exec /usr/bin/docker run --rm --name qwen38-flash --gpus all \
     --ple-offload-embedding \
     --mamba-radix-cache-strategy extra_buffer \
     --max-mamba-cache-size 96 \
-    --mem-fraction-static 0.90 \
+    --mem-fraction-static 0.70 \
     --context-length 131072 \
     --chunked-prefill-size 4096 \
     --enable-mixed-chunk \
