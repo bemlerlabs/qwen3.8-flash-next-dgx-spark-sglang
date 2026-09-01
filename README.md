@@ -71,6 +71,7 @@ Empirically measured telemetry comparing the 27B dense baseline against the 180B
 | **NVMe PLE Table Size** | `None` | **`47.7 GiB (51.2 GB)`** *(zero-copy mmap)* |
 | **Swap Buffer** | `0 Bytes` | **`1.2 GiB / 99 GiB (98 GiB free safety net)`** |
 | **Chat Template** | Standard ChatML | **Sharp Jinja (`qwen3.8-froggeric-v22.1`)** |
+| **Cold Boot / Restart Time** | `~2 – 3 minutes` | **`~8.5 minutes`** *(51.8s prefetch, zero swap thrashing)* |
 | **Thinking Mode Support** | Standard CoT | **Native `<think>` Streaming + Tool Calling** |
 
 ---
