@@ -39,12 +39,17 @@ if [ ! -f "${CONFIG_DIR}/chat-template-flashnext.jinja" ]; then
   exit 1
 fi
 
-# Pre-warm Safetensors from NVMe into Linux Page Cache in parallel (< 18s)
+# Pre-warm Safetensors & PLE table from NVMe into Linux Page Cache in parallel (< 25s)
 HF_SNAPSHOT_DIR="${HF_CACHE_DIR}/hub/models--${MODEL_ID//\//--}/snapshots/${MODEL_REVISION}"
 if [ -d "${HF_SNAPSHOT_DIR}" ]; then
   echo "Pre-warming 206 model weight shards into OS page cache with 8 NVMe workers..."
   find "${HF_SNAPSHOT_DIR}" -name "*.safetensors" | xargs -n 1 -P 8 cat > /dev/null 2>&1 || true
-  echo "Page cache warming complete."
+fi
+
+if [ -d "${PLE_DIR}" ]; then
+  echo "Pre-warming 47.7 GiB PLE table into OS page cache with 4 NVMe workers..."
+  find "${PLE_DIR}" -name "*.bin" | xargs -n 1 -P 4 cat > /dev/null 2>&1 || true
+  echo "Storage pre-warming complete (Safetensors + PLE table)."
 fi
 
 # Background health monitor (disowned to prevent zombie subshell)
