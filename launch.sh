@@ -21,7 +21,7 @@ HOST="${HOST:-0.0.0.0}"
 PORT="${PORT:-8000}"
 
 echo "================================================================="
-echo " Starting Qwen3.8-Flash-Next on DGX Spark (Unified Zero-Copy)    "
+echo " Starting Qwen3.8-Flash-Next on DGX Spark (SGLang 0.90 Unified)  "
 echo "================================================================="
 echo "Model ID:       ${MODEL_ID}"
 echo "Revision:       ${MODEL_REVISION}"
@@ -51,9 +51,9 @@ fi
 ) </dev/null >/dev/null 2>&1 &
 disown || true
 
-# Launch production container with unified zero-copy mmap (no duplicate CPU RAM buffers)
+# Launch production container with clean zero-copy ATS mmap and 0.90 memory fraction
 exec /usr/bin/docker run --rm --name qwen38-flash --gpus all \
-  --shm-size 16g --network host --ipc=host \
+  --memory 110g --memory-swap 110g --shm-size 16g --network host --ipc=host \
   -v "${HF_CACHE_DIR}":/root/.cache/huggingface \
   -v "${CONFIG_DIR}":/out \
   -v "${PLE_DIR}":/ple \
@@ -71,9 +71,8 @@ exec /usr/bin/docker run --rm --name qwen38-flash --gpus all \
     --prefill-attention-backend triton \
     --decode-attention-backend trtllm_mha \
     --ple-offload-embedding \
-    --weight-loader-drop-cache-after-load \
     --mamba-radix-cache-strategy extra_buffer \
-    --max-mamba-cache-size 48 \
+    --max-mamba-cache-size 96 \
     --mem-fraction-static 0.90 \
     --context-length 131072 \
     --chunked-prefill-size 4096 \
