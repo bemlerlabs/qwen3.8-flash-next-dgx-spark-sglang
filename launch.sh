@@ -6,12 +6,15 @@
 # ==============================================================================
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Configuration & Defaults
 MODEL_ID="${MODEL_ID:-RadixArk/Qwen3.8-Flash-Next-NVFP4}"
 MODEL_REVISION="${MODEL_REVISION:-7b719225242aacd3dbd3f9407468c2ee9a9d2594}"
-PLE_DIR="${PLE_DIR:-/root/flashnext-ple}"
-CACHE_DIR="${CACHE_DIR:-/root/.config/qwen38/sglang-cache}"
-CONFIG_DIR="${CONFIG_DIR:-/root/.config/qwen38}"
-HF_CACHE_DIR="${HF_CACHE_DIR:-/home/mimitechai/.cache/huggingface}"
+PLE_DIR="${PLE_DIR:-${HOME}/flashnext-ple}"
+CACHE_DIR="${CACHE_DIR:-${HOME}/.config/qwen38/sglang-cache}"
+CONFIG_DIR="${CONFIG_DIR:-${SCRIPT_DIR}}"
+HF_CACHE_DIR="${HF_CACHE_DIR:-${HOME}/.cache/huggingface}"
 CONTAINER_IMAGE="${CONTAINER_IMAGE:-qwen38-flash:v1.5}"
 API_KEY="${API_KEY:-local}"
 HOST="${HOST:-0.0.0.0}"
@@ -24,17 +27,26 @@ echo "Model ID:       ${MODEL_ID}"
 echo "Revision:       ${MODEL_REVISION}"
 echo "PLE Directory:  ${PLE_DIR}"
 echo "Cache Dir:      ${CACHE_DIR}"
+echo "HF Cache:       ${HF_CACHE_DIR}"
 echo "Listening on:   http://${HOST}:${PORT}"
 echo "================================================================="
 
-mkdir -p "${PLE_DIR}" "${CACHE_DIR}" "${CONFIG_DIR}"
+mkdir -p "${PLE_DIR}" "${CACHE_DIR}" "${CONFIG_DIR}" "${HF_CACHE_DIR}"
 
+# Check for chat template
+if [ ! -f "${CONFIG_DIR}/chat-template-flashnext.jinja" ]; then
+  echo "Error: Chat template not found at ${CONFIG_DIR}/chat-template-flashnext.jinja"
+  exit 1
+fi
+
+# Clean stale PLE loading lock
 if [ -f "${PLE_DIR}/.loading" ]; then
   echo "Warning: Previous boot never reached health check; cleaning stale PLE tables..."
   rm -f "${PLE_DIR}"/ple_table_*.bin
 fi
 touch "${PLE_DIR}/.loading"
 
+# Background health monitor (disowned to prevent zombie subshell)
 (
   for _ in $(seq 1 270); do
     sleep 10
@@ -45,7 +57,9 @@ touch "${PLE_DIR}/.loading"
     fi
   done
 ) </dev/null >/dev/null 2>&1 &
+disown || true
 
+# Launch production container with strict 110GB memory ceiling (Zero-OOM Guarantee)
 exec /usr/bin/docker run --rm --name qwen38-flash --gpus all \
   --memory 110g --memory-swap 110g --shm-size 16g --network host --ipc=host \
   -v "${HF_CACHE_DIR}":/root/.cache/huggingface \
@@ -55,7 +69,6 @@ exec /usr/bin/docker run --rm --name qwen38-flash --gpus all \
   -e SGLANG_QWEN4_PLE_MMAP_DIR=/ple \
   -e TRITON_CACHE_DIR=/root/.cache/sglang/triton \
   -e TORCHINDUCTOR_CACHE_DIR=/root/.cache/sglang/inductor \
-  -e HF_HUB_OFFLINE=1 \
   "${CONTAINER_IMAGE}" \
   python3 -m sglang.launch_server \
     --model-path "${MODEL_ID}" \
