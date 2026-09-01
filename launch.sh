@@ -69,6 +69,8 @@ exec /usr/bin/docker run --rm --name qwen38-flash --gpus all \
   -e SGLANG_QWEN4_PLE_MMAP_DIR=/ple \
   -e TRITON_CACHE_DIR=/root/.cache/sglang/triton \
   -e TORCHINDUCTOR_CACHE_DIR=/root/.cache/sglang/inductor \
+  -e OMP_NUM_THREADS=16 \
+  -e MKL_NUM_THREADS=16 \
   "${CONTAINER_IMAGE}" \
   python3 -m sglang.launch_server \
     --model-path "${MODEL_ID}" \
