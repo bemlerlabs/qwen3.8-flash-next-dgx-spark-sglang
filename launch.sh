@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ==============================================================================
 # Qwen3.8-Flash-Next (180B MoE) SGLang Launch Script for NVIDIA DGX Spark
-# Recipe by Bemler Labs (https://github.com/bemlerlabs)
+# Recipe by Michael Bemler (Bemler Labs)
 # Hardware: Grace Blackwell GB10 (128GB Unified Memory, SM121)
 # ==============================================================================
 set -euo pipefail
@@ -21,7 +21,7 @@ HOST="${HOST:-0.0.0.0}"
 PORT="${PORT:-8000}"
 
 echo "================================================================="
-echo " Starting Qwen3.8-Flash-Next on DGX Spark (SGLang + Sharp Template) "
+echo " Starting Qwen3.8-Flash-Next on DGX Spark (SGLang + Fast Load)   "
 echo "================================================================="
 echo "Model ID:       ${MODEL_ID}"
 echo "Revision:       ${MODEL_REVISION}"
@@ -51,9 +51,9 @@ fi
 ) </dev/null >/dev/null 2>&1 &
 disown || true
 
-# Launch production container with 106GB memory ceiling and optimized 0.90 static fraction
+# Launch production container with unthrottled page cache and 8-thread prefetching
 exec /usr/bin/docker run --rm --name qwen38-flash --gpus all \
-  --memory 106g --memory-swap 106g --shm-size 16g --network host --ipc=host \
+  --shm-size 16g --network host --ipc=host \
   -v "${HF_CACHE_DIR}":/root/.cache/huggingface \
   -v "${CONFIG_DIR}":/out \
   -v "${PLE_DIR}":/ple \
@@ -71,6 +71,10 @@ exec /usr/bin/docker run --rm --name qwen38-flash --gpus all \
     --prefill-attention-backend triton \
     --decode-attention-backend trtllm_mha \
     --ple-offload-embedding \
+    --weight-loader-disable-mmap \
+    --weight-loader-drop-cache-after-load \
+    --weight-loader-prefetch-checkpoints \
+    --weight-loader-prefetch-num-threads 8 \
     --mamba-radix-cache-strategy extra_buffer \
     --max-mamba-cache-size 48 \
     --mem-fraction-static 0.90 \
