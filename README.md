@@ -50,7 +50,8 @@ graph TD
 3. **Prefill / Decode Split:** Uses custom Triton kernels for maximum NVFP4 Tensor Core saturation during prefill, and `trtllm_mha` kernels for low-overhead decode execution on SM121.
 4. **NEXTN Multi-Token Prediction (MTP):** Speculative decoding with 3 verification steps and 4 draft tokens, boosting output generation to **110 – 152+ tok/s**.
 5. **Sharp Chat Template (`qwen3.8-froggeric-v22.1`):** Integrated Jinja template eliminating conversational filler tokens, shortening response lengths by ~18% while maintaining full reasoning fidelity.
-6. **Persistent JIT Compilation Cache:** Mounts Triton and Inductor SM121 kernel caches to host NVMe, reducing engine boot and restart times from 15 minutes down to ~3 minutes.
+6. **Persistent JIT Compilation Cache:** Mounts Triton and Inductor SM121 kernel caches to host NVMe, eliminating redundant kernel recompilations on reboot.
+7. **Parallel NVMe Pre-Warming & 16-Core Grace OpenMP:** Pre-warms 206 checkpoint shards into RAM in 17s via 8 background NVMe workers and harnesses 16 Grace CPU cores (`OMP_NUM_THREADS=16`) for zero-OOM parallel PLE table initialization.
 
 ---
 
